@@ -1,6 +1,6 @@
 import { IconButton } from '@chakra-ui/react';
 import Icon from '@chakra-ui/icon';
-import { TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons';
+import { DeleteIcon, TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons';
 import { Box, Flex, Heading, Link, Text } from '@chakra-ui/layout';
 import React from 'react';
 import { Post, PostSnippetFragment } from '../generated/graphql';
@@ -9,9 +9,10 @@ import NextLink from 'next/link';
 
 interface Props {
     post: PostSnippetFragment;
+    userId: number;
 }
 
-const HomePost = ({ post, ...rest }: Props) => {
+const HomePost = ({ post, userId, ...rest }: Props) => {
     const { id, title, creator, textSnippet } = post;
     return (
         <Box
@@ -23,7 +24,7 @@ const HomePost = ({ post, ...rest }: Props) => {
             {...rest}
         >
             <Flex justifyContent='space-between' alignItems='center' height='max'>
-                <Box>
+                <Box flex={1}>
                     <NextLink href='/post/[id]' as={`/post/${id}`}>
                         <Link
                             fontSize='x-large'
@@ -37,7 +38,7 @@ const HomePost = ({ post, ...rest }: Props) => {
                     <Text textTransform='capitalize'>Posted by {creator.username}</Text>
                     <Text mt={4}>{textSnippet}</Text>
                 </Box>
-                <Updoot post={post} />
+                <Updoot userId={userId} post={post} />
             </Flex>
         </Box>
     );

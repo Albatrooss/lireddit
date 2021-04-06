@@ -1,6 +1,6 @@
 import { withUrqlClient } from 'next-urql';
 import { createUrqlClient } from '../utils/createUrqlClient';
-import { usePostsQuery } from '../generated/graphql';
+import { useMeQuery, usePostsQuery } from '../generated/graphql';
 import MyHead from '../components/MyHead';
 import Layout from '../components/Layout';
 import { Heading, Stack, Text } from '@chakra-ui/layout';
@@ -20,6 +20,9 @@ const Index = () => {
         variables,
     });
 
+    const [{ data: meData }] = useMeQuery();
+
+    console.log('data', data);
     if (!fetching && !data) {
         return <div> You got query failed for some reason..</div>;
     }
@@ -34,7 +37,9 @@ const Index = () => {
                         {!data && fetching ? (
                             <div>Loading..</div>
                         ) : (
-                            data!.posts.posts.map(p => <HomePost key={p.id} post={p} />)
+                            data!.posts.posts.map(p =>
+                                !p ? null : <HomePost key={p.id} userId={meData?.me?.id} post={p} />
+                            )
                         )}
                     </Stack>
                     {data && data.posts.hasMore ? (

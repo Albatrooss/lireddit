@@ -41,7 +41,7 @@ const Post = () => {
                     by {data?.post?.creator.username}
                 </Heading>
                 <Divider my={4} />
-                <Text>{data?.post?.text}</Text>
+                <Text whiteSpace='pre-line'>{data?.post?.text}</Text>
             </Layout>
         </>
     );
