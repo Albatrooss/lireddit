@@ -1,17 +1,18 @@
 import { IconButton } from '@chakra-ui/react';
 import Icon from '@chakra-ui/icon';
 import { TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons';
-import { Box, Flex, Heading, Text } from '@chakra-ui/layout';
+import { Box, Flex, Heading, Link, Text } from '@chakra-ui/layout';
 import React from 'react';
 import { Post, PostSnippetFragment } from '../generated/graphql';
 import Updoot from './Updoot';
+import NextLink from 'next/link';
 
 interface Props {
     post: PostSnippetFragment;
 }
 
 const HomePost = ({ post, ...rest }: Props) => {
-    const { title, creator, textSnippet } = post;
+    const { id, title, creator, textSnippet } = post;
     return (
         <Box
             p={5}
@@ -23,7 +24,16 @@ const HomePost = ({ post, ...rest }: Props) => {
         >
             <Flex justifyContent='space-between' alignItems='center' height='max'>
                 <Box>
-                    <Heading fontSize='xl'>{title}</Heading>
+                    <NextLink href='/post/[id]' as={`/post/${id}`}>
+                        <Link
+                            fontSize='x-large'
+                            fontWeight='bolder'
+                            cursor='pointer'
+                            textTransform='capitalize'
+                        >
+                            {title}
+                        </Link>
+                    </NextLink>
                     <Text textTransform='capitalize'>Posted by {creator.username}</Text>
                     <Text mt={4}>{textSnippet}</Text>
                 </Box>
