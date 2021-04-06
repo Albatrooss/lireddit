@@ -4,10 +4,12 @@ import {
     Arg,
     Ctx,
     Field,
+    FieldResolver,
     Mutation,
     ObjectType,
     Query,
     Resolver,
+    Root,
 } from 'type-graphql';
 import argon from 'argon2';
 import { COOKIE_NAME, FORGOT_PW_PRE } from '../constants';
@@ -35,8 +37,16 @@ class UserResponse {
     user?: User;
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+    @FieldResolver()
+    email(@Root() user: User, @Ctx() { req }: MyContext) {
+        if (req.session.userId === user.id) {
+            return user.email;
+        }
+        return '';
+    }
+
     @Query(() => User, { nullable: true })
     me(@Ctx() { req }: MyContext): Promise<User | undefined> {
         const userId = req.session.userId;

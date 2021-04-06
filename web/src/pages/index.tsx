@@ -15,7 +15,7 @@ interface Varibale {
 }
 
 const Index = () => {
-    const [variables, setVariables] = useState<Varibale>({ limit: 33, cursor: null });
+    const [variables, setVariables] = useState<Varibale>({ limit: 15, cursor: null });
     const [{ data, fetching }] = usePostsQuery({
         variables,
     });
@@ -34,13 +34,7 @@ const Index = () => {
                         {!data && fetching ? (
                             <div>Loading..</div>
                         ) : (
-                            data!.posts.posts.map((p, i) => (
-                                <HomePost
-                                    key={p.id}
-                                    title={i + ' - ' + p.title}
-                                    desc={p.textSnippet}
-                                />
-                            ))
+                            data!.posts.posts.map(p => <HomePost key={p.id} post={p} />)
                         )}
                     </Stack>
                     {data && data.posts.hasMore ? (

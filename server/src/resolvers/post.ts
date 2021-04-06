@@ -16,6 +16,7 @@ import {
 import { MyContext } from '../types';
 import { isAuth } from '../middleware/isAuth';
 import { getConnection } from 'typeorm';
+import { Updoot } from '../entities/Updoot';
 
 @InputType()
 class PostInput {
@@ -49,21 +50,44 @@ export class PostResolver {
     async posts(
         @Arg('limit', () => Int) limit: number,
         @Arg('cursor', () => String, { nullable: true }) cursor: string | null,
+        @Ctx() { req }: MyContext,
     ): Promise<PaginatedPosts> {
         const realLimit = Math.min(50, limit);
         const realLimitPlusOne = realLimit + 1;
-        const qb = getConnection()
-            .getRepository(Post)
-            .createQueryBuilder('p')
-            .orderBy('"createdAt"', 'DESC')
-            .take(realLimitPlusOne);
+
+        const params: any[] = [realLimitPlusOne];
+        if (req.session.userId) params.push(req.session.userId);
+        let cursorIdx = 3;
         if (cursor) {
-            qb.where('"createdAt" < :cursor', {
-                cursor: new Date(parseInt(cursor)),
-            });
+            params.push(new Date(parseInt(cursor)));
+            cursorIdx = params.length;
         }
 
-        const posts = await qb.getMany();
+        const posts = await getConnection().query(
+            `
+            SELECT 
+            p.*,
+            JSON_BUILD_OBJECT(
+                'id', u.id,
+                'username', u.username,
+                'email', u.email,
+                'createdAt', u."createdAt",
+                'updatedAt', u."updatedAt"
+            ) AS creator,
+            ${
+                req.session.userId
+                    ? '(SELECT value FROM updoot WHERE "userId" = $2 AND "postId" = p.id) AS "voteStatus"'
+                    : 'null AS "voteStatus"'
+            }
+            FROM post p
+            INNER JOIN users u ON (u.id = p."creatorId")
+            ${cursor ? `WHERE p."createdAt" < $${cursorIdx}` : ''}
+            ORDER BY p."createdAt" DESC
+            LIMIT $1
+        `,
+            params,
+        );
+
         return {
             posts: posts.slice(0, realLimit),
             hasMore: posts.length === realLimitPlusOne,
@@ -74,6 +98,66 @@ export class PostResolver {
     post(@Arg('id') id: number): Promise<Post | undefined> {
         return Post.findOne(id);
     }
+
+    //===============
+
+    @Mutation(() => Boolean)
+    @UseMiddleware(isAuth)
+    async vote(
+        @Arg('postId', () => Int) postId: number,
+        @Arg('value', () => Int) value: number,
+        @Ctx() { req }: MyContext,
+    ) {
+        const { userId } = req.session;
+        const updoot = await Updoot.findOne({ where: { postId, userId } });
+        const isUpdoot = value >= 0;
+        const realValue = isUpdoot ? 1 : -1;
+
+        if (updoot && updoot.value !== realValue) {
+            // changing
+            await getConnection().transaction(async tm => {
+                await tm.query(
+                    `
+                    UPDATE updoot
+                    SET value = $1
+                    WHERE "postId" = $2
+                    AND "userId" = $3;
+                `,
+                    [realValue, postId, userId],
+                );
+                await tm.query(
+                    `
+                UPDATE post
+                SET points = points + $1
+                WHERE id = $2;
+                `,
+                    [realValue * 2, postId],
+                );
+            });
+        } else if (!updoot) {
+            await getConnection().transaction(async tm => {
+                await tm.query(
+                    `
+                INSERT INTO updoot("userId", "postId", value)
+                VALUES($1, $2, $3);
+                `,
+                    [userId, postId, realValue],
+                );
+                await tm.query(
+                    `
+                UPDATE post
+                SET points = points + $1
+                WHERE id = $2;
+                `,
+                    [realValue, postId],
+                );
+            });
+        }
+
+        return true;
+    }
+
+    // =============
 
     @Mutation(() => Post)
     @UseMiddleware(isAuth)

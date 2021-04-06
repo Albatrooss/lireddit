@@ -48,7 +48,7 @@ const Navbar: React.FC = () => {
     }
 
     return (
-        <Box bg='Background' position='sticky' top={0} shadow='md'>
+        <Box bg='Background' position='sticky' top={0} shadow='md' zIndex={1}>
             <Flex maxW='1366px' justifyContent='center' alignItems='center' m='0 auto' p='8px 0'>
                 <NextLink href='/'>
                     <Box cursor='pointer' borderRight='2px solid white' p='0 16px' h='100%'>

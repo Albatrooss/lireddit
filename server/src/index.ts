@@ -8,12 +8,13 @@ import { HelloResolver } from './resolvers/hello';
 import { PostResolver } from './resolvers/post';
 import { UserResolver } from './resolvers/user';
 import cors from 'cors';
-import Redis from 'ioredis';
+import redis from 'redis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
 import { User } from './entities/User';
 import { Post } from './entities/Post';
 import path from 'path';
+import { Updoot } from './entities/Updoot';
 
 const main = async () => {
     const conn = await createConnection({
@@ -24,15 +25,19 @@ const main = async () => {
         logging: true,
         synchronize: true,
         migrations: [path.join(__dirname, './migrations/*')],
-        entities: [User, Post],
+        entities: [User, Post, Updoot],
     });
 
     await conn.runMigrations();
 
     const app = express();
 
+    const redisClient = redis.createClient();
+    redisClient.on('error', err =>
+        console.log('could not connct to redis' + err),
+    );
+    redisClient.on('connect', () => console.log('connected to redis!'));
     const RedisStore = connectRedis(session);
-    const redis = new Redis();
 
     app.use(
         cors({
@@ -45,8 +50,7 @@ const main = async () => {
         session({
             name: COOKIE_NAME,
             store: new RedisStore({
-                client: redis,
-                disableTouch: true,
+                client: redisClient,
             }),
             cookie: {
                 maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years

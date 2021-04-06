@@ -22,12 +22,13 @@ const hello_1 = require("./resolvers/hello");
 const post_1 = require("./resolvers/post");
 const user_1 = require("./resolvers/user");
 const cors_1 = __importDefault(require("cors"));
-const ioredis_1 = __importDefault(require("ioredis"));
+const redis_1 = __importDefault(require("redis"));
 const express_session_1 = __importDefault(require("express-session"));
 const connect_redis_1 = __importDefault(require("connect-redis"));
 const User_1 = require("./entities/User");
 const Post_1 = require("./entities/Post");
 const path_1 = __importDefault(require("path"));
+const Updoot_1 = require("./entities/Updoot");
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const conn = yield typeorm_1.createConnection({
         type: 'postgres',
@@ -37,12 +38,14 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         logging: true,
         synchronize: true,
         migrations: [path_1.default.join(__dirname, './migrations/*')],
-        entities: [User_1.User, Post_1.Post],
+        entities: [User_1.User, Post_1.Post, Updoot_1.Updoot],
     });
     yield conn.runMigrations();
     const app = express_1.default();
+    const redisClient = redis_1.default.createClient();
+    redisClient.on('error', err => console.log('could not connct to redis' + err));
+    redisClient.on('connect', () => console.log('connected to redis!'));
     const RedisStore = connect_redis_1.default(express_session_1.default);
-    const redis = new ioredis_1.default();
     app.use(cors_1.default({
         origin: 'http://localhost:3000',
         credentials: true,
@@ -50,8 +53,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     app.use(express_session_1.default({
         name: constants_1.COOKIE_NAME,
         store: new RedisStore({
-            client: redis,
-            disableTouch: true,
+            client: redisClient,
         }),
         cookie: {
             maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
@@ -68,7 +70,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             resolvers: [hello_1.HelloResolver, post_1.PostResolver, user_1.UserResolver],
             validate: false,
         }),
-        context: ({ req, res }) => ({ req, res, redis }),
+        context: ({ req, res }) => ({ req, res, redis: redis_1.default }),
     });
     apolloSever.applyMiddleware({ app, cors: false });
     const port = 4000;
