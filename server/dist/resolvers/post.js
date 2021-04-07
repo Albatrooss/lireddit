@@ -27,6 +27,7 @@ const type_graphql_1 = require("type-graphql");
 const isAuth_1 = require("../middleware/isAuth");
 const typeorm_1 = require("typeorm");
 const Updoot_1 = require("../entities/Updoot");
+const User_1 = require("../entities/User");
 let PostInput = class PostInput {
 };
 __decorate([
@@ -61,6 +62,20 @@ let PostResolver = class PostResolver {
         }
         return text;
     }
+    creator(post, { userLoader }) {
+        return userLoader.load(post.creatorId);
+    }
+    voteStatus(post, { req, updootLoader }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!req.session.userId)
+                return null;
+            const updoot = yield updootLoader.load({
+                userId: req.session.userId,
+                postId: post.id,
+            });
+            return updoot ? updoot.value : null;
+        });
+    }
     posts(limit, cursor, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
             const realLimit = Math.min(50, limit);
@@ -76,18 +91,10 @@ let PostResolver = class PostResolver {
             const posts = yield typeorm_1.getConnection().query(`
             SELECT 
             p.*,
-            JSON_BUILD_OBJECT(
-                'id', u.id,
-                'username', u.username,
-                'email', u.email,
-                'createdAt', u."createdAt",
-                'updatedAt', u."updatedAt"
-            ) AS creator,
             ${req.session.userId
                 ? '(SELECT value FROM updoot WHERE "userId" = $2 AND "postId" = p.id) AS "voteStatus"'
                 : 'null AS "voteStatus"'}
             FROM post p
-            INNER JOIN users u ON (u.id = p."creatorId")
             ${cursor ? `WHERE p."createdAt" < $${cursorIdx}` : ''}
             ORDER BY p."createdAt" DESC
             LIMIT $1
@@ -99,7 +106,7 @@ let PostResolver = class PostResolver {
         });
     }
     post(id) {
-        return Post_1.Post.findOne(id, { relations: ['creator'] });
+        return Post_1.Post.findOne(id);
     }
     vote(postId, value, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -173,6 +180,21 @@ __decorate([
     __metadata("design:paramtypes", [Post_1.Post]),
     __metadata("design:returntype", String)
 ], PostResolver.prototype, "textSnippet", null);
+__decorate([
+    type_graphql_1.FieldResolver(() => User_1.User),
+    __param(0, type_graphql_1.Root()), __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Post_1.Post, Object]),
+    __metadata("design:returntype", void 0)
+], PostResolver.prototype, "creator", null);
+__decorate([
+    type_graphql_1.FieldResolver(() => type_graphql_1.Int, { nullable: true }),
+    __param(0, type_graphql_1.Root()),
+    __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Post_1.Post, Object]),
+    __metadata("design:returntype", Promise)
+], PostResolver.prototype, "voteStatus", null);
 __decorate([
     type_graphql_1.Query(() => PaginatedPosts),
     __param(0, type_graphql_1.Arg('limit', () => type_graphql_1.Int)),

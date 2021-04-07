@@ -17,6 +17,7 @@ import { MyContext } from '../types';
 import { isAuth } from '../middleware/isAuth';
 import { getConnection } from 'typeorm';
 import { Updoot } from '../entities/Updoot';
+import { User } from '../entities/User';
 
 @InputType()
 class PostInput {
@@ -46,6 +47,25 @@ export class PostResolver {
         return text;
     }
 
+    @FieldResolver(() => User)
+    creator(@Root() post: Post, @Ctx() { userLoader }: MyContext) {
+        return userLoader.load(post.creatorId);
+    }
+
+    @FieldResolver(() => Int, { nullable: true })
+    async voteStatus(
+        @Root() post: Post,
+        @Ctx() { req, updootLoader }: MyContext,
+    ) {
+        if (!req.session.userId) return null;
+
+        const updoot = await updootLoader.load({
+            userId: req.session.userId,
+            postId: post.id,
+        });
+        return updoot ? updoot.value : null;
+    }
+
     @Query(() => PaginatedPosts)
     async posts(
         @Arg('limit', () => Int) limit: number,
@@ -67,20 +87,12 @@ export class PostResolver {
             `
             SELECT 
             p.*,
-            JSON_BUILD_OBJECT(
-                'id', u.id,
-                'username', u.username,
-                'email', u.email,
-                'createdAt', u."createdAt",
-                'updatedAt', u."updatedAt"
-            ) AS creator,
             ${
                 req.session.userId
                     ? '(SELECT value FROM updoot WHERE "userId" = $2 AND "postId" = p.id) AS "voteStatus"'
                     : 'null AS "voteStatus"'
             }
             FROM post p
-            INNER JOIN users u ON (u.id = p."creatorId")
             ${cursor ? `WHERE p."createdAt" < $${cursorIdx}` : ''}
             ORDER BY p."createdAt" DESC
             LIMIT $1
@@ -96,7 +108,7 @@ export class PostResolver {
 
     @Query(() => Post, { nullable: true })
     post(@Arg('id', () => Int) id: number): Promise<Post | undefined> {
-        return Post.findOne(id, { relations: ['creator'] });
+        return Post.findOne(id);
     }
 
     //===============
