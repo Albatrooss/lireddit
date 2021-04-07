@@ -22,7 +22,6 @@ const Index = () => {
 
     const [{ data: meData }] = useMeQuery();
 
-    console.log('data', data);
     if (!fetching && !data) {
         return <div> You got query failed for some reason..</div>;
     }

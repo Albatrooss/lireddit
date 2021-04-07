@@ -6,8 +6,10 @@ import { Button } from '@chakra-ui/button';
 import { isServer } from '../utils/isServer';
 import { createUrqlClient } from '../utils/createUrqlClient';
 import { withUrqlClient } from 'next-urql';
+import { useRouter } from 'next/router';
 
 const Navbar: React.FC = () => {
+    const router = useRouter();
     const [{ fetching: logoutFetching }, logout] = useLogoutMutation();
     const [{ data, fetching }] = useMeQuery({
         pause: isServer(),
@@ -38,7 +40,10 @@ const Navbar: React.FC = () => {
                 </Text>
                 <Button
                     colorScheme='orange'
-                    onClick={async () => await logout()}
+                    onClick={async () => {
+                        await logout();
+                        router.reload();
+                    }}
                     isLoading={logoutFetching}
                 >
                     Logout
