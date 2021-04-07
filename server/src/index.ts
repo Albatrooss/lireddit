@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import 'dotenv-safe/config';
 import { COOKIE_NAME, __prod__ } from './constants';
 import { createConnection } from 'typeorm';
 import express from 'express';
@@ -21,12 +22,10 @@ import { createUpdootLoader } from './utils/createUpDootLoader';
 const main = async () => {
     const conn = await createConnection({
         type: 'postgres',
-        database: 'lireddit',
-        username: 'postgres',
-        password: 'password',
+        url: process.env.DATABASE_URL,
         logging: true,
-        synchronize: true,
-        migrations: [path.join(__dirname, './migrations/*')],
+        synchronize: false,
+        migrations: [path.join(__dirname, './migrations/*.js')],
         entities: [User, Post, Updoot],
     });
 
@@ -34,16 +33,17 @@ const main = async () => {
 
     const app = express();
 
-    const redisClient = redis.createClient();
+    const redisClient = redis.createClient(process.env.REDIS_URL);
     redisClient.on('error', err =>
         console.log('could not connct to redis' + err),
     );
     redisClient.on('connect', () => console.log('connected to redis!'));
     const RedisStore = connectRedis(session);
 
+    app.set('proxy', 1);
     app.use(
         cors({
-            origin: 'http://localhost:3000',
+            origin: process.env.CORS_ORIGIN,
             credentials: true,
         }),
     );
@@ -59,9 +59,10 @@ const main = async () => {
                 httpOnly: true,
                 secure: __prod__, // cookie only works in https
                 sameSite: 'lax', // csrf
+                domain: __prod__ ? '.ohohoh.ca' : undefined,
             },
             saveUninitialized: false,
-            secret: 'ohhimark',
+            secret: process.env.SESSION_SECRET,
             resave: false,
         }),
     );
@@ -82,7 +83,7 @@ const main = async () => {
 
     apolloSever.applyMiddleware({ app, cors: false });
 
-    const port = 4000;
+    const port = parseInt(process.env.PORT);
     app.listen(port, () => {
         console.log(`Server started on Post localhost:${port}`);
     });

@@ -12,7 +12,7 @@ import { Post } from './Post';
 import { Updoot } from './Updoot';
 
 @ObjectType()
-@Entity({ name: 'users' })
+@Entity()
 export class User extends BaseEntity {
     @Field()
     @PrimaryGeneratedColumn()
