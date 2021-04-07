@@ -2,6 +2,7 @@ import { Box, Divider, Heading, Text } from '@chakra-ui/layout';
 import { withUrqlClient } from 'next-urql';
 import { useRouter } from 'next/router';
 import React from 'react';
+import EditDeletePostBtns from '../../components/EditDeletePostBtns';
 import Layout from '../../components/Layout';
 import MyHead from '../../components/MyHead';
 import { usePostQuery } from '../../generated/graphql';
@@ -32,16 +33,21 @@ const Post = () => {
             </>
         );
 
+    const post = data.post;
+
     return (
         <>
-            <MyHead title={data?.post?.title} />
+            <MyHead title={post?.title} />
             <Layout variant='lg'>
-                <Heading>{data?.post?.title}</Heading>
+                <Heading>{post?.title}</Heading>
                 <Heading mt={4} size='md' textTransform='capitalize' color='gray.600'>
-                    by {data?.post?.creator.username}
+                    by {post?.creator.username}
                 </Heading>
+                <Box position='relative'>
+                    <EditDeletePostBtns postId={post.id} creatorId={post.creator.id} />
+                </Box>
                 <Divider my={4} />
-                <Text whiteSpace='pre-line'>{data?.post?.text}</Text>
+                <Text whiteSpace='pre-line'>{post?.text}</Text>
             </Layout>
         </>
     );

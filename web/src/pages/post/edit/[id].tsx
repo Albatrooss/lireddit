@@ -1,15 +1,14 @@
 import { Button } from '@chakra-ui/react';
-import { Formik, Form } from 'formik';
+import { Form, Formik } from 'formik';
 import { withUrqlClient } from 'next-urql';
-import router, { useRouter } from 'next/router';
+import { useRouter } from 'next/router';
 import React from 'react';
 import { InputField } from '../../../components/InputField';
 import Layout from '../../../components/Layout';
 import MyHead from '../../../components/MyHead';
-import { usePostsQuery, useUpdatePostMutation } from '../../../generated/graphql';
+import { useUpdatePostMutation } from '../../../generated/graphql';
 import { createUrqlClient } from '../../../utils/createUrqlClient';
 import { useGetPostFromUrl } from '../../../utils/useGetPostFromUrl';
-import createPost from '../../create-post';
 
 interface Props {}
 
@@ -43,7 +42,7 @@ const EditPost = ({}: Props) => {
                     initialValues={{ title: post?.title, text: post?.text }}
                     onSubmit={async values => {
                         await updatePost({ id: post.id, ...values });
-                        router.push('/');
+                        router.back();
                     }}
                 >
                     {({ values, isSubmitting }) => (

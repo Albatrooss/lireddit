@@ -9,7 +9,7 @@ import NextLink from 'next/link';
 
 interface Props {
     post: PostSnippetFragment;
-    userId: number;
+    userId: number | undefined;
 }
 
 const HomePost = ({ post, userId, ...rest }: Props) => {
